@@ -1,0 +1,84 @@
+SWITCH
+------
+DEFAULT SETTINGS
+hostname S1
+no ip domain lookup
+enable secret cisco
+line con 0 
+ password cisco
+ login
+ logging synch
+line vty 0 4    // ZKUSIT?
+ password cisco
+ login
+banner motd $ Authorized Users Only! $
+---------------------------------------
+VLANS:
+vlan 10
+ name Management
+vlan 20
+ name Sales
+vlan 30
+ name Operations
+vlan 999
+ name Parking_Lot
+vlan 1000
+ name Native
+
+NASTAVENI IP ADRESY VLANE
+S1(config)# interface vlan 20
+S1(config-if)# ip address 10.20.0.2 255.255.255.0
+S1(config-if)# no shutdown
+S1(config-if)# exit
+S1(config)# ip default-gateway 10.20.0.1
+S1(config)# end
+
+PRIRAZENI VLANY DO 
+S1(config)# interface range f0/2 - 4, f0/7 - 24, g0/1 - 2
+S1(config-if-range)# switchport mode access
+S1(config-if-range)# switchport access vlan 999
+S1(config-if-range)# shutdown
+S1(config-if-range)# end
+
+VYTVORENI TRUNKU
+interface f0/1         
+ switchport trunk encaps dot1q
+ switchport nonegotiate
+ switchport mode trunk       
+ switchport trunk native vlan 1000
+ switchport trunk allowed vlan 10,30,1000         
+ no shutdown
+
+VYTVORENI NECEHO K TRUNKU
+interface f0/6 
+ switchport mode access
+ switchport access vlan 20
+ no shutdown
+
+# SSH
+config terminal
+service password-encryption
+ip domain-name netacad.pka
+crypto key generate rsa
+  1024
+username administrator secret cisco
+line vty 0 15
+  login local
+  transport input ssh
+  no password cisco
+------------------------------------------------------------
+ACL - https://itexamanswers.net/5-5-2-lab-configure-and-verify-extended-ipv4-acls-answers.html
+
+R1(config)# access-list 101 deny tcp 10.40.0.0 0.0.0.255 10.20.0.0 0.0.0.255 eq 22 // blokuje SSH pro sit 10.40.0.0/24 na sit 10.20.0.0/24
+
+R1(config)# access-list 101 deny tcp 10.40.0.0 0.0.0.255 10.30.0.1 0.0.0.0 eq 80 // blokuje pristup na HTTP ze site 10.40.0.0/24 na INTERFACE R1.30. PROTO 0.0.0.0 u WILDCARD MASKY
+
+R1(config)# access-list 101 deny icmp 10.40.0.0 0.0.0.255 10.20.0.0 0.0.0.255 echo // blokuje ping ze site 10.40.0.0/24 do site 10.20.0.0/24. 
+
+
+OTAZKY NA TOMA:
+OUTBOUND/INBOUND
+DRUHY PRIPAD ACCESS LISTU
+V pripade vytvareni ACL se drzim pravidla 1 ACL = 1 Interface? Viz posledni ukol https://itexamanswers.net/5-5-2-lab-configure-and-verify-extended-ipv4-acls-answers.html
+ip access-group 105 out ??? wtf is that shit
+

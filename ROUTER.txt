@@ -1,0 +1,111 @@
+ROUTER
+------
+hostname R1
+no ip domain lookup
+enable secret cisco
+line con 0
+ password cisco
+ login
+ logging synch
+line vty 0 4
+ password cisco
+ login
+banner motd $ Authorized Users Only! $
+
+ROUTE
+		     IP KAM  MASK    NEXT HOP
+R1(config)# ip route 0.0.0.0 0.0.0.0 209.165.200.225
+
+---------------------------------------
+OSPF - https://itexamanswers.net/2-7-2-lab-configure-single-area-ospfv2-answers.html
+1: konfigurace rozhrani (IP add, Mask, gateway)
+2:
+R1(config)# router ospf 56
+R2(config)# router ospf 56
+
+3:
+R1(config-router)# router-id 1.1.1.1
+R2(config-router)# router-id 2.2.2.2
+
+4:
+R1(config-router)# network 10.53.0.0 0.0.0.255 area 0
+R2(config-router)# network 10.53.0.0 0.0.0.255 area 0
+
+5 (only if the network is outside of R1):
+R2(config-router)# network 192.168.1.0 0.0.0.255 area 
+
+6 (OPTIMALIZACE napr. POUZITI SPECIFICKE CESTY): 
+R1(config)# interface g0/0/1 // VYBER INTERFACE KDE CHCI NECO NASTAVIT NAPR COST
+
+R1(config-if)#ip ospf cost 200 // CIM VETSI TIM PLATIS VIS A PACKET TI TAM NEJDE
+R1(config-if)# ip ospf priority 50  //NASTAVENI DR/BDR ROUTER
+--------------------------------------------------------------------------------
+ACL - https://itexamanswers.net/5-5-2-lab-configure-and-verify-extended-ipv4-acls-answers.html
+
+klíčové slovo host - místo 10.0.5.2 0.0.0.0 můžeme použít host 10.0.5.2
+
+R1(config)# access-list 101 deny tcp 10.40.0.0 0.0.0.255 10.20.0.0 0.0.0.255 eq 22 // blokuje SSH pro sit 10.40.0.0/24 na sit 10.20.0.0/24
+R1(config)# access-list 101 deny tcp 10.40.0.0 0.0.0.255 10.30.0.1 0.0.0.0 eq 80 // blokuje pristup na HTTP ze site 10.40.0.0/24 na INTERFACE R1.30. PROTO 0.0.0.0 u WILDCARD MASKY
+R1(config)# access-list 101 deny icmp 10.40.0.0 0.0.0.255 10.20.0.0 0.0.0.255 echo // blokuje ping ze site 10.40.0.0/24 do site 10.20.0.0/24. 
+
+R1(config)# access-list 101 permit ip any any // default ktery musi byt na konci???
+
+PO NAPSANI ACL SE MUSI PRIRADIT NA INTERFACE
+
+R1(config-subif)# ip access-group 101 in
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+NAT -
+
+JE NUTNE UDELAT IP ROUTE NA SITE JENZ NEJSOU PRIMO PRIPOJENE
+
+R1(config)# access-list 1 permit 192.168.1.0 0.0.0.255 // vytvoreni access listu ktery definuje jake adresy mohou byt prekladany na verejne
+R1(config)# ip nat pool PUBLIC_ACCESS 209.165.200.226 209.165.200.228 netmask 255.255.255.248 // Vytvoreni NAT poolu, pojmenování a přiřazení adres, jenž může použít
+R1(config)# ip nat inside source list 1 pool PUBLIC_ACCESS // Přiřazení "volných" privátních adres pro překlad
+
+
+R1(config)# interface g0/0/1 //Urceni inside NATu
+R1(config-if)# ip nat inside
+
+R1(config)# interface g0/0/0 //Urceni outside NATu
+R1(config-if)# ip nat outside
+
+PAT:
+STEJNE KROKY JAKO V NATu
+R1(config)# ip nat inside source list 1 pool PUBLIC_ACCESS overload // V PRIPADE POOLU ADRES
+R1(config)# ip nat inside source list 1 interface g0/0/0 overload // V PRIPADE INTERFACE
+
+----------------------------------------------------------------------------------------------------
+
+Static NAT:
+NEDELA SE POOL ADRES, STATICKY SE PREKLADA JEDNA PRIVATE ADRESA NA JEDNU PUBLIC ADRESU
+R1(config)# ip nat inside source static 192.168.1.2 209.165.200.229
+----------------------------------------------------------------------------------------------------
+DALSI UZITECNE LABY: 
+
+https://itexamanswers.net/10-6-11-lab-use-tera-term-to-manage-router-configuration-files-answers.html // RESTORE CONFIGURATION 
+https://itexamanswers.net/10-6-12-lab-use-tftp-flash-and-usb-to-manage-configuration-files-answers.html // USE TFTP, Flash APOD
+https://itexamanswers.net/10-8-2-lab-configure-cdp-lldp-and-ntp-answers.html // LLDP, CDP A NTP
+
+
+
+
+
+Show:
+show ip protocols
+
+show ip ospf neighbor
+show ip ospf
+show ip ospf interface
+
+show access-list
+
+show ip nat translations
+show ip nat translations verbose
+
+show NTP associations detail
+
+Clear:
+clear ip ospf process
+
+clear ip nat translations *
+clear ip nat statistics
